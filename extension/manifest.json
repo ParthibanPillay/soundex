@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Soundex",
+  "version": "1.0",
+  "description": "Runs the Soundex Discord presence while YouTube Music is open.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA6BjZYdBEJPh35SKrXMLyjlVZOH9LcY5PFKRoD6wBhFAFH3zL5R0KII5/3A+y9eDDVLgwgIDyFjgvZocrGmm/+ZX14nd4B8XWygKGycAOPrIo0HTwO4ZYgTsHdAexNHZtCdZ8HNk4Q11gKkgB3AMZA8JMcjj8ZeX44k9LJc7UK4ufAh4s4UHVTH/YM7ERyAKM1bS31TaajU3xBawfXSwdb4iVc5NA8NsRVv/nmn2DGZwXpNim3SshE7lFKSB5sIw/cau4Clt/Ak2KyptnytO8YzVks2ZiaitI3341Tf/5sRU8fuotfvCxZ5aimMxlnUIuPPKvny8c/RWYmFOB1xbrYwIDAQAB",
+  "permissions": ["nativeMessaging", "tabs", "storage"],
+  "action": { "default_title": "Soundex: click to hide/show presence" },
+  "host_permissions": ["https://music.youtube.com/*"],
+  "content_scripts": [{ "matches": ["https://music.youtube.com/*"], "js": ["content.js"] }],
+  "background": { "service_worker": "background.js" }
+}
