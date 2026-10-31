@@ -14,6 +14,8 @@ use std::{
 const CLIENT_ID: &str = "1563908474339852289";
 // Matches the `key` in extension/manifest.json, so every install gets the same extension ID.
 const ORIGIN: &str = "chrome-extension://enmkpjohffhmjocegfnioggikmbjihoa/";
+// Matches browser_specific_settings.gecko.id in the manifest (Firefox).
+const GECKO_ID: &str = "soundex@soundex.dev";
 
 fn now() -> i64 {
     SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64
@@ -138,7 +140,6 @@ fn main() {
 }
 
 // `soundex install`: register this binary as the native messaging host for installed browsers.
-// ponytail: Chromium-family only; Firefox needs its own manifest format (allowed_extensions).
 fn install() {
     let exe = std::env::current_exe().expect("no exe path");
     let manifest = json!({
@@ -149,16 +150,27 @@ fn install() {
         "allowed_origins": [ORIGIN],
     })
     .to_string();
+    // Firefox wants the same manifest with allowed_extensions instead of allowed_origins.
+    let firefox = json!({
+        "name": "dev.soundex",
+        "description": "Soundex Discord presence",
+        "path": exe,
+        "type": "stdio",
+        "allowed_extensions": [GECKO_ID],
+    })
+    .to_string();
 
     if cfg!(windows) {
         // Windows reads a registry key whose value is the manifest's path.
         let file = exe.with_file_name("dev.soundex.json");
         std::fs::write(&file, manifest).expect("can't write manifest");
-        for b in ["Google\\Chrome", "Chromium", "BraveSoftware\\Brave-Browser", "Microsoft\\Edge"] {
+        let ff_file = exe.with_file_name("dev.soundex.firefox.json");
+        std::fs::write(&ff_file, firefox).expect("can't write manifest");
+        for b in ["Google\\Chrome", "Chromium", "BraveSoftware\\Brave-Browser", "Microsoft\\Edge", "Mozilla"] {
             let key = format!("HKCU\\Software\\{b}\\NativeMessagingHosts\\dev.soundex");
             let ok = std::process::Command::new("reg")
                 .args(["add", &key, "/ve", "/t", "REG_SZ", "/d"])
-                .arg(&file)
+                .arg(if b == "Mozilla" { &ff_file } else { &file })
                 .arg("/f")
                 .output()
                 .is_ok_and(|o| o.status.success());
@@ -188,5 +200,16 @@ fn install() {
         std::fs::create_dir_all(&dir).unwrap();
         std::fs::write(dir.join("dev.soundex.json"), &manifest).unwrap();
         println!("installed for {b}");
+    }
+    // Firefox reads from its own dir, not under the browser's config dir.
+    let ff = if cfg!(target_os = "macos") {
+        home.join("Library/Application Support/Mozilla/NativeMessagingHosts")
+    } else {
+        home.join(".mozilla/native-messaging-hosts")
+    };
+    if ff.parent().is_some_and(|p| p.is_dir()) {
+        std::fs::create_dir_all(&ff).unwrap();
+        std::fs::write(ff.join("dev.soundex.json"), firefox).unwrap();
+        println!("installed for Firefox");
     }
 }
